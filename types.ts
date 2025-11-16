@@ -6,6 +6,12 @@ export interface Chapter {
 
 export interface Book {
   title: string;
+  subtitle?: string;
+  authorName: string;
+  copyright: string;
+  dedication?: string;
+  acknowledgements?: string;
+  authorBio?: string;
   synopsis: string;
   introduction: Chapter;
   chapters: Chapter[];
@@ -17,4 +23,16 @@ export interface BookOutline {
   introductionTitle: string;
   chapterTitles: string[];
   conclusionTitle: string;
+}
+
+export interface GenerationConfig {
+    title: string;
+    subtitle?: string;
+    authorName: string;
+    category: string;
+    genre: 'fiction' | 'non-fiction';
+    wordCount: string;
+    tone: string;
+    targetAudience: string;
+    language: string;
 }

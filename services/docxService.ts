@@ -8,24 +8,36 @@ import {
   AlignmentType, 
   PageBreak, 
   TableOfContents,
-  Numbering,
-  Indent,
   PageNumber,
-  Header
+  Header,
+  TabStopType,
+  TabStopPosition
 } from 'docx';
 import type { Book } from '../types';
 
 export const createAndDownloadDocx = async (
   book: Book,
-  options: { fontSize: number; lineSpacing: number }
+  options: { fontSize: number; lineSpacing: number; fontFamily: string; }
 ) => {
-  const { fontSize, lineSpacing } = options;
+  const { fontSize, lineSpacing, fontFamily } = options;
+  const FONT_SIZE_POINTS = fontSize * 2; // docx font sizes are in half-points
+  const SPACING_LINE = Math.round(lineSpacing * 240); // 1.0 spacing = 240
 
   const doc = new Document({
     creator: "AI Book Weaver",
     title: book.title,
     description: book.synopsis,
     styles: {
+      default: {
+        heading1: {
+          run: { font: fontFamily, size: 32, bold: true },
+          paragraph: { alignment: AlignmentType.CENTER, spacing: { before: 240, after: 120 } },
+        },
+        title: {
+            run: { font: fontFamily, size: 56, bold: true },
+            paragraph: { alignment: AlignmentType.CENTER, spacing: { before: 2000, after: 100 } },
+        },
+      },
       paragraphStyles: [
         {
           id: "normalPara",
@@ -33,14 +45,29 @@ export const createAndDownloadDocx = async (
           basedOn: "Normal",
           next: "Normal",
           run: {
-            font: "Times New Roman",
-            size: fontSize * 2, // Font size is in half-points
+            font: fontFamily,
+            size: FONT_SIZE_POINTS,
           },
           paragraph: {
-            spacing: {
-              line: Math.round(lineSpacing * 240), // 1.0 spacing = 240
-            },
+            spacing: { line: SPACING_LINE },
+            alignment: AlignmentType.JUSTIFIED,
           },
+        },
+        {
+            id: "subtitle",
+            name: "Subtitle",
+            basedOn: "Normal",
+            next: "Normal",
+            run: { font: fontFamily, size: 32, italics: true },
+            paragraph: { alignment: AlignmentType.CENTER, spacing: { after: 1000 } },
+        },
+        {
+            id: "author",
+            name: "Author",
+            basedOn: "Normal",
+            next: "Normal",
+            run: { font: fontFamily, size: 28 },
+            paragraph: { alignment: AlignmentType.CENTER },
         },
       ],
     },
@@ -67,7 +94,7 @@ export const createAndDownloadDocx = async (
               children: [
                 new TextRun({
                   children: ["", PageNumber.CURRENT],
-                  font: "Times New Roman",
+                  font: fontFamily,
                   size: 20,
                 }),
               ],
@@ -76,52 +103,84 @@ export const createAndDownloadDocx = async (
         }),
       },
       children: [
-        // Internal Cover Page
-        new Paragraph({
-          children: [new TextRun(book.title)],
-          heading: HeadingLevel.TITLE,
-          alignment: AlignmentType.CENTER,
-          spacing: { before: 4000, after: 8000 },
+        // 1. Internal Cover Page
+        new Paragraph({ text: book.title, style: "titleStyle" }),
+        ...(book.subtitle ? [new Paragraph({ text: book.subtitle, style: "subtitle" })] : []),
+        new Paragraph({ text: book.authorName, style: "author" }),
+        new Paragraph({ children: [new PageBreak()] }),
+
+        // 2. Copyright Page
+        new Paragraph({ 
+            text: book.copyright,
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 4000 }
         }),
-        new Paragraph({
-          children: [new PageBreak()]
-        }),
-        // Table of Contents
+        new Paragraph({ children: [new PageBreak()] }),
+
+        // 3. Dedication (optional)
+        ...(book.dedication ? [
+            new Paragraph({
+                text: book.dedication,
+                alignment: AlignmentType.CENTER,
+                italics: true,
+                spacing: { before: 4000 }
+            }),
+            new Paragraph({ children: [new PageBreak()] })
+        ] : []),
+
+        // 4. Table of Contents
         new Paragraph({ text: "Table of Contents", heading: HeadingLevel.HEADING_1 }),
         new TableOfContents("Summary", {
           hyperlink: true,
           headingStyleRange: "1-1",
+           tabStops: [
+            { type: TabStopType.RIGHT, position: TabStopPosition.MAX }
+          ],
         }),
-        new Paragraph({
-          children: [new PageBreak()]
-        }),
-
-        // Synopsis
+        new Paragraph({ children: [new PageBreak()] }),
+        
+        // 5. Synopsis
         new Paragraph({ text: "Synopsis", heading: HeadingLevel.HEADING_1 }),
-        ...book.synopsis.split('\n').map(p => new Paragraph({ text: p, style: "normalPara" })),
-        new Paragraph({
-          children: [new PageBreak()]
-        }),
+        ...book.synopsis.split('\n').filter(p => p.trim() !== '').map(p => new Paragraph({ text: p, style: "normalPara" })),
+        new Paragraph({ children: [new PageBreak()] }),
 
-        // Introduction
+        // 6. Introduction
         new Paragraph({ text: book.introduction.title, heading: HeadingLevel.HEADING_1 }),
-        ...book.introduction.content.split('\n').map(p => new Paragraph({ text: p, style: "normalPara" })),
+        ...book.introduction.content.split('\n').filter(p => p.trim() !== '').map(p => new Paragraph({ text: p, style: "normalPara" })),
 
-        // Chapters
+        // 7. Chapters
         ...book.chapters.flatMap(chapter => [
-          new Paragraph({
-            children: [new PageBreak()]
-          }),
+          new Paragraph({ children: [new PageBreak()] }),
           new Paragraph({ text: chapter.title, heading: HeadingLevel.HEADING_1 }),
-          ...chapter.content.split('\n').map(p => new Paragraph({ text: p, style: "normalPara" })),
+          ...chapter.content.split('\n').filter(p => p.trim() !== '').map(p => new Paragraph({ text: p, style: "normalPara" })),
         ]),
 
-        // Conclusion
-        new Paragraph({
-          children: [new PageBreak()]
-        }),
+        // 8. Conclusion
+        new Paragraph({ children: [new PageBreak()] }),
         new Paragraph({ text: book.conclusion.title, heading: HeadingLevel.HEADING_1 }),
-        ...book.conclusion.content.split('\n').map(p => new Paragraph({ text: p, style: "normalPara" })),
+        ...book.conclusion.content.split('\n').filter(p => p.trim() !== '').map(p => new Paragraph({ text: p, style: "normalPara" })),
+
+        // 9. Acknowledgements (optional)
+        ...(book.acknowledgements ? [
+          new Paragraph({ children: [new PageBreak()] }),
+          new Paragraph({ text: "Acknowledgements", heading: HeadingLevel.HEADING_1 }),
+          ...book.acknowledgements.split('\n').filter(p => p.trim() !== '').map(p => new Paragraph({ text: p, style: "normalPara" }))
+        ] : []),
+        
+        // 10. About the Author (optional)
+        ...(book.authorBio ? [
+          new Paragraph({ children: [new PageBreak()] }),
+          new Paragraph({ text: "About the Author", heading: HeadingLevel.HEADING_1 }),
+          ...book.authorBio.split('\n').filter(p => p.trim() !== '').map(p => new Paragraph({ text: p, style: "normalPara" }))
+        ] : []),
+
+        // 11. Final Page
+        new Paragraph({ children: [new PageBreak()] }),
+        new Paragraph({
+            text: "Thank you for reading.",
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 4000 }
+        })
       ],
     }],
   });

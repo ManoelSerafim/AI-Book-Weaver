@@ -1,5 +1,6 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
-import type { BookOutline } from '../types';
+import type { BookOutline, GenerationConfig } from '../types';
 
 if (!process.env.API_KEY) {
   throw new Error("API_KEY environment variable is not set");
@@ -12,7 +13,7 @@ const bookOutlineSchema = {
   properties: {
     synopsis: {
       type: Type.STRING,
-      description: "A compelling and brief synopsis of the book, around 150-200 words.",
+      description: "A compelling and brief synopsis of the book, around 150-200 words, that explains the central theme.",
     },
     introductionTitle: {
       type: Type.STRING,
@@ -20,7 +21,7 @@ const bookOutlineSchema = {
     },
     chapterTitles: {
       type: Type.ARRAY,
-      description: "An array of 8 engaging and sequential chapter titles.",
+      description: "An array of 10 to 15 engaging and sequential chapter titles.",
       items: { type: Type.STRING },
     },
     conclusionTitle: {
@@ -69,9 +70,26 @@ export const generateAlternativeTitles = async (originalTitle: string, language:
   }
 };
 
-export const generateBookOutline = async (title: string, language: string): Promise<BookOutline> => {
-  const prompt = `Generate a book outline for a book titled "${title}". The book should be structured for a general audience and be engaging. Provide a synopsis, an introduction title, exactly 8 chapter titles, and a conclusion title.
-  IMPORTANT: Generate all content (synopsis, titles) in ${language}.`;
+export const generateBookOutline = async (config: GenerationConfig): Promise<BookOutline> => {
+  const prompt = `
+    You are a master book planner. Generate a detailed book outline based on the following specifications.
+    
+    - Title: "${config.title}"
+    - Subtitle: "${config.subtitle || 'N/A'}"
+    - Genre: ${config.genre}
+    - Category: ${config.category}
+    - Tone: ${config.tone}
+    - Target Audience: ${config.targetAudience}
+    - Desired Length: ${config.wordCount}
+    
+    Your task is to create an outline that includes:
+    1.  A compelling synopsis (150-200 words).
+    2.  An engaging title for the Introduction.
+    3.  A list of 10 to 15 sequential and descriptive chapter titles.
+    4.  An impactful title for the Conclusion.
+
+    IMPORTANT: Generate all content (synopsis, titles) in ${config.language}.
+    The structure must be logical and flow naturally from one topic to the next, keeping the target audience and tone in mind.`;
 
   try {
     const response = await ai.models.generateContent({
@@ -84,7 +102,6 @@ export const generateBookOutline = async (title: string, language: string): Prom
     });
 
     const jsonText = response.text.trim();
-    // Gemini may wrap the JSON in ```json ... ```, so we need to clean it.
     const cleanedJson = jsonText.replace(/^```json\n?/, "").replace(/\n?```$/, "");
     return JSON.parse(cleanedJson) as BookOutline;
 
@@ -95,20 +112,23 @@ export const generateBookOutline = async (title: string, language: string): Prom
 };
 
 export const generateChapterContent = async (
-  bookTitle: string,
+  config: GenerationConfig,
   chapterTitle: string,
   synopsis: string,
-  language: string
 ): Promise<string> => {
   const prompt = `
-    You are an expert author. Write the content for a chapter of the book titled "${bookTitle}".
+    You are an expert author writing in a ${config.tone} style for ${config.targetAudience}.
+    Your current project is a ${config.genre} book titled "${config.title}".
     The overall book synopsis is: "${synopsis}".
-    The title of this specific chapter is: "${chapterTitle}".
+    
+    You are now writing the chapter titled: "${chapterTitle}".
 
-    Please write the full content for this chapter in ${language}. It should be well-written, engaging, and approximately 500-700 words long.
-    Do not repeat the chapter title in the content. Start directly with the chapter text.
-    Ensure the content is relevant to the chapter title and fits within the book's overall theme.
-    Format the output as plain text.
+    Please write the full content for this chapter in ${config.language}.
+    - The content should be approximately 1,500 to 3,000 words.
+    - The writing must be clear, engaging, and consistent with the book's overall tone and genre.
+    - If non-fiction, use explanations, examples, and storytelling.
+    - If fiction, develop characters, plot, and dialogue.
+    - Do not repeat the chapter title in the content. Begin directly with the chapter text.
   `;
 
   try {
@@ -123,15 +143,40 @@ export const generateChapterContent = async (
   }
 };
 
+export const generateAuthorBio = async (authorName: string, bookTitle: string, category: string, language: string): Promise<string> => {
+    const prompt = `
+    Write a short, professional author biography in ${language} for an author named ${authorName}.
+    They have just written a book titled "${bookTitle}" in the "${category}" category.
+    The biography should be about 100-150 words.
+    The tone should be engaging, establish credibility in the category's subject matter, and mention their motivation for writing the book.
+    Do not include contact information.
+    `;
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+        });
+        return response.text;
+    } catch (error) {
+        console.error("Error generating author bio:", error);
+        throw new Error("Failed to generate author bio.");
+    }
+}
 
-export const generateCoverImage = async (title: string, synopsis: string): Promise<string> => {
-  const prompt = `
+
+export const generateCoverImage = async (title: string, synopsis: string, feedback?: string): Promise<string> => {
+  let prompt = `
     Create a stunning, high-quality book cover for a book titled "${title}".
     The book's synopsis is: "${synopsis}".
     The style should be modern, artistic, and eye-catching, suitable for a bestseller.
     Do not include any text or titles on the image. The image should be purely artistic and representative of the theme.
     Generate a visually compelling piece of art.
   `;
+
+  if (feedback && feedback.trim()) {
+    prompt += `\n\nIMPORTANT CORRECTION INSTRUCTIONS: The user has provided feedback on a previous version. Please modify the image based on the following instructions: "${feedback}"`;
+  }
+
   try {
     const response = await ai.models.generateImages({
         model: 'imagen-4.0-generate-001',
