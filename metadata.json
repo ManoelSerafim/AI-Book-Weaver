@@ -1,0 +1,5 @@
+{
+  "name": "Copy of AI Book Weaver",
+  "description": "An application that automatically generates a complete, KDP-formatted book from a single title, including content, formatting, and a cover image.",
+  "requestFramePermissions": []
+}
