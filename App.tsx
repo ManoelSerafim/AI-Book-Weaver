@@ -7,6 +7,54 @@ import { translations, LanguageKey, TranslationKey } from './translations';
 
 type AuthorBioOption = 'manual' | 'auto';
 
+const InputField: React.FC<{
+  id: string;
+  label: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  placeholder: string;
+  disabled?: boolean;
+  children?: React.ReactNode;
+}> = ({ id, label, value, onChange, placeholder, disabled = false }) => (
+  <div>
+      <label htmlFor={id} className="block text-sm font-medium text-text-secondary mb-1">{label}</label>
+      <input id={id} type="text" value={value} onChange={onChange} placeholder={placeholder} disabled={disabled} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-primary transition bg-white disabled:bg-gray-100" />
+  </div>
+);
+
+const SelectField: React.FC<{
+  id: string;
+  label: string;
+  value: string | number;
+  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  children: React.ReactNode;
+  disabled?: boolean;
+}> = ({ id, label, value, onChange, children, disabled = false }) => (
+  <div>
+      <label htmlFor={id} className="block text-sm font-medium text-text-secondary mb-1">{label}</label>
+      <select id={id} value={value} onChange={onChange} disabled={disabled} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-primary transition bg-white appearance-none disabled:bg-gray-100">
+          {children}
+      </select>
+  </div>
+);
+
+const TextAreaField: React.FC<{
+  id: string;
+  label: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  placeholder: string;
+  rows?: number;
+  disabled?: boolean;
+  children?: React.ReactNode;
+}> = ({ id, label, value, onChange, placeholder, rows = 3, disabled = false }) => (
+  <div>
+      <label htmlFor={id} className="block text-sm font-medium text-text-secondary mb-1">{label}</label>
+      <textarea id={id} value={value} onChange={onChange} placeholder={placeholder} rows={rows} disabled={disabled} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-primary transition bg-white disabled:bg-gray-100" />
+  </div>
+);
+
+
 const App: React.FC = () => {
   // UI Language
   const [uiLanguage, setUiLanguage] = useState<LanguageKey>('en');
@@ -164,51 +212,6 @@ const App: React.FC = () => {
     a.click();
     document.body.removeChild(a);
   };
-  
-  const InputField: React.FC<{
-    id: string;
-    label: string;
-    value: string;
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    placeholder: string;
-    disabled?: boolean;
-  }> = ({ id, label, value, onChange, placeholder, disabled = false }) => (
-    <div>
-        <label htmlFor={id} className="block text-sm font-medium text-text-secondary mb-1">{label}</label>
-        <input id={id} type="text" value={value} onChange={onChange} placeholder={placeholder} disabled={disabled} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-primary transition bg-white disabled:bg-gray-100" />
-    </div>
-  );
-
-  const SelectField: React.FC<{
-    id: string;
-    label: string;
-    value: string | number;
-    onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-    children: React.ReactNode;
-    disabled?: boolean;
-  }> = ({ id, label, value, onChange, children, disabled = false }) => (
-    <div>
-        <label htmlFor={id} className="block text-sm font-medium text-text-secondary mb-1">{label}</label>
-        <select id={id} value={value} onChange={onChange} disabled={disabled} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-primary transition bg-white appearance-none disabled:bg-gray-100">
-            {children}
-        </select>
-    </div>
-  );
-
-  const TextAreaField: React.FC<{
-    id: string;
-    label: string;
-    value: string;
-    onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-    placeholder: string;
-    rows?: number;
-    disabled?: boolean;
-  }> = ({ id, label, value, onChange, placeholder, rows = 3, disabled = false }) => (
-    <div>
-        <label htmlFor={id} className="block text-sm font-medium text-text-secondary mb-1">{label}</label>
-        <textarea id={id} value={value} onChange={onChange} placeholder={placeholder} rows={rows} disabled={disabled} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-primary transition bg-white disabled:bg-gray-100" />
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-background font-sans">
