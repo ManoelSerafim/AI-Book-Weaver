@@ -128,53 +128,42 @@ export const createAndDownloadDocx = async (
             new Paragraph({ children: [new PageBreak()] })
         ] : []),
 
-        // 4. Table of Contents
-        new Paragraph({ text: "Table of Contents", heading: HeadingLevel.HEADING_1 }),
-        new TableOfContents("Summary", {
-          hyperlink: true,
-          headingStyleRange: "1-1",
-           tabStops: [
-            { type: TabStopType.RIGHT, position: TabStopPosition.MAX }
-          ],
-        }),
-        new Paragraph({ children: [new PageBreak()] }),
-        
-        // 5. Synopsis
+        // 4. Synopsis
         new Paragraph({ text: "Synopsis", heading: HeadingLevel.HEADING_1 }),
         ...book.synopsis.split('\n').filter(p => p.trim() !== '').map(p => new Paragraph({ text: p, style: "normalPara" })),
         new Paragraph({ children: [new PageBreak()] }),
 
-        // 6. Introduction
+        // 5. Introduction
         new Paragraph({ text: book.introduction.title, heading: HeadingLevel.HEADING_1 }),
         ...book.introduction.content.split('\n').filter(p => p.trim() !== '').map(p => new Paragraph({ text: p, style: "normalPara" })),
 
-        // 7. Chapters
+        // 6. Chapters
         ...book.chapters.flatMap(chapter => [
           new Paragraph({ children: [new PageBreak()] }),
           new Paragraph({ text: chapter.title, heading: HeadingLevel.HEADING_1 }),
           ...chapter.content.split('\n').filter(p => p.trim() !== '').map(p => new Paragraph({ text: p, style: "normalPara" })),
         ]),
 
-        // 8. Conclusion
+        // 7. Conclusion
         new Paragraph({ children: [new PageBreak()] }),
         new Paragraph({ text: book.conclusion.title, heading: HeadingLevel.HEADING_1 }),
         ...book.conclusion.content.split('\n').filter(p => p.trim() !== '').map(p => new Paragraph({ text: p, style: "normalPara" })),
 
-        // 9. Acknowledgements (optional)
+        // 8. Acknowledgements (optional)
         ...(book.acknowledgements ? [
           new Paragraph({ children: [new PageBreak()] }),
           new Paragraph({ text: "Acknowledgements", heading: HeadingLevel.HEADING_1 }),
           ...book.acknowledgements.split('\n').filter(p => p.trim() !== '').map(p => new Paragraph({ text: p, style: "normalPara" }))
         ] : []),
         
-        // 10. About the Author (optional)
+        // 9. About the Author (optional)
         ...(book.authorBio ? [
           new Paragraph({ children: [new PageBreak()] }),
           new Paragraph({ text: "About the Author", heading: HeadingLevel.HEADING_1 }),
           ...book.authorBio.split('\n').filter(p => p.trim() !== '').map(p => new Paragraph({ text: p, style: "normalPara" }))
         ] : []),
 
-        // 11. Final Page
+        // 10. Final Page
         new Paragraph({ children: [new PageBreak()] }),
         new Paragraph({
             text: "Thank you for reading.",

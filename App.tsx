@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import type { Book, Chapter, GenerationConfig } from './types';
 import { generateBookOutline, generateChapterContent, generateCoverImage, generateAlternativeTitles, generateAuthorBio } from './services/geminiService';
@@ -67,6 +68,8 @@ const App: React.FC = () => {
   const [subtitle, setSubtitle] = useState<string>('');
   const [authorName, setAuthorName] = useState<string>('');
   const [category, setCategory] = useState<string>('Self-Help');
+  const [customCategory, setCustomCategory] = useState<string>('');
+
 
   // Book Configuration
   const [genre, setGenre] = useState<'fiction' | 'non-fiction'>('non-fiction');
@@ -101,6 +104,11 @@ const App: React.FC = () => {
   const [fontSize, setFontSize] = useState<number>(12);
   const [lineSpacing, setLineSpacing] = useState<number>(1.15);
 
+  const predefinedCategories = [
+    'Self-Help', 'Business & Money', 'Health, Fitness & Dieting', 'Biography', 
+    'Science Fiction & Fantasy', 'Mystery, Thriller & Suspense', 'Romance', 
+    'Children\'s Books', 'History', 'Religion & Spirituality'
+  ];
 
   const handleSuggestTitles = useCallback(async () => {
     if (!title.trim()) {
@@ -133,16 +141,18 @@ const App: React.FC = () => {
     setError(null);
     setSuggestedTitles([]);
 
+    const finalCategory = category === 'Other' ? customCategory : category;
+
     try {
       let finalAuthorBio = authorBio;
       if (authorBioOption === 'auto') {
         setLoadingMessage('Step 1/4: Generating author bio...');
-        finalAuthorBio = await generateAuthorBio(authorName, title, category, language);
+        finalAuthorBio = await generateAuthorBio(authorName, title, finalCategory, language);
         setAuthorBio(finalAuthorBio);
       }
 
       const generationConfig: GenerationConfig = {
-        title, subtitle, authorName, category, genre, wordCount, tone, targetAudience, language
+        title, subtitle, authorName, category: finalCategory, genre, wordCount, tone, targetAudience, language
       };
 
       setLoadingMessage('Step 2/4: Generating book outline...');
@@ -185,14 +195,28 @@ const App: React.FC = () => {
       setIsLoading(false);
       setLoadingMessage('');
     }
-  }, [title, subtitle, authorName, category, genre, wordCount, tone, targetAudience, language, dedication, acknowledgements, authorBio, authorBioOption, t]);
+  }, [title, subtitle, authorName, category, customCategory, genre, wordCount, tone, targetAudience, language, dedication, acknowledgements, authorBio, authorBioOption, t]);
 
   const handleGenerateCover = useCallback(async (feedback?: string) => {
     if (!generatedBook) return;
     setIsCoverLoading(true);
     setError(null);
+
+    const finalCategory = category === 'Other' ? customCategory : category;
+    const generationConfig: GenerationConfig = {
+        title: generatedBook.title,
+        subtitle, 
+        authorName: generatedBook.authorName,
+        category: finalCategory, 
+        genre, 
+        wordCount, 
+        tone, 
+        targetAudience, 
+        language
+    };
+
     try {
-      const imageBase64 = await generateCoverImage(generatedBook.title, generatedBook.synopsis, feedback);
+      const imageBase64 = await generateCoverImage(generationConfig, generatedBook.synopsis, feedback);
       setCoverImage(`data:image/jpeg;base64,${imageBase64}`);
       setCoverFeedback('');
     } catch (e) {
@@ -201,7 +225,7 @@ const App: React.FC = () => {
     } finally {
       setIsCoverLoading(false);
     }
-  }, [generatedBook]);
+  }, [generatedBook, subtitle, category, customCategory, genre, wordCount, tone, targetAudience, language]);
 
   const handleDownloadCover = () => {
     if (!coverImage || !generatedBook) return;
@@ -267,7 +291,22 @@ const App: React.FC = () => {
                 )}
                 <InputField id="book-subtitle" label={t('subtitle')} value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder={t('subtitlePlaceholder')} disabled={isLoading} />
                 <InputField id="author-name" label={t('authorName')} value={authorName} onChange={(e) => setAuthorName(e.target.value)} placeholder={t('authorNamePlaceholder')} disabled={isLoading} />
-                <InputField id="category" label={t('category')} value={category} onChange={(e) => setCategory(e.target.value)} placeholder={t('categoryPlaceholder')} disabled={isLoading} />
+                <SelectField id="category-select" label={t('category')} value={category} onChange={(e) => setCategory(e.target.value)} disabled={isLoading}>
+                    {predefinedCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                    <option value="Other">{t('other')}</option>
+                </SelectField>
+                {category === 'Other' && (
+                  <div className="pl-4 border-l-2 border-gray-200">
+                    <InputField 
+                        id="custom-category" 
+                        label={t('customCategory')} 
+                        value={customCategory} 
+                        onChange={(e) => setCustomCategory(e.target.value)} 
+                        placeholder={t('customCategoryPlaceholder')} 
+                        disabled={isLoading} 
+                    />
+                  </div>
+                )}
             </details>
 
              <details className="space-y-4 group" open>

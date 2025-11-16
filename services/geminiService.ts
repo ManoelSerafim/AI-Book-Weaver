@@ -164,13 +164,22 @@ export const generateAuthorBio = async (authorName: string, bookTitle: string, c
 }
 
 
-export const generateCoverImage = async (title: string, synopsis: string, feedback?: string): Promise<string> => {
+export const generateCoverImage = async (config: GenerationConfig, synopsis: string, feedback?: string): Promise<string> => {
   let prompt = `
-    Create a stunning, high-quality book cover for a book titled "${title}".
-    The book's synopsis is: "${synopsis}".
-    The style should be modern, artistic, and eye-catching, suitable for a bestseller.
-    Do not include any text or titles on the image. The image should be purely artistic and representative of the theme.
-    Generate a visually compelling piece of art.
+    Create a stunning, high-quality book cover for a book with the following details:
+    - Title: "${config.title}"
+    - Author: "${config.authorName}"
+    - Synopsis: "${synopsis}"
+    - Genre: ${config.genre}
+    - Category: ${config.category}
+    - Tone: ${config.tone}
+    - Target Audience: ${config.targetAudience}
+
+    The cover style should be modern, artistic, and eye-catching, suitable for a bestseller.
+    
+    CRITICAL INSTRUCTION: The cover MUST include the exact book title "${config.title}" and the author's name "${config.authorName}".
+    The text must be clear, professional, and elegantly integrated into the design. Use a readable, high-quality font.
+    The background art should be visually compelling and representative of the book's theme.
   `;
 
   if (feedback && feedback.trim()) {
