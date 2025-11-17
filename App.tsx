@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback } from 'react';
-import type { Book, Chapter, GenerationConfig } from './types';
-import { generateBookOutline, generateChapterContent, generateCoverImage, generateAlternativeTitles, generateAuthorBio } from './services/geminiService';
+import type { Book, Chapter, GenerationConfig, PublishingDetails } from './types';
+import { generateBookOutline, generateChapterContent, generateCoverImage, generateAlternativeTitles, generateAuthorBio, generatePublishingDetails } from './services/geminiService';
 import { createAndDownloadDocx } from './services/docxService';
 import Icon from './components/Icon';
 import { translations, LanguageKey, TranslationKey } from './translations';
@@ -104,6 +104,11 @@ const App: React.FC = () => {
   const [fontSize, setFontSize] = useState<number>(12);
   const [lineSpacing, setLineSpacing] = useState<number>(1.15);
 
+  // Publishing Details
+  const [publishingDetails, setPublishingDetails] = useState<PublishingDetails | null>(null);
+  const [isGeneratingDetails, setIsGeneratingDetails] = useState<boolean>(false);
+  const [copied, setCopied] = useState<'description' | 'keywords' | null>(null);
+
   const predefinedCategories = [
     'Self-Help', 'Business & Money', 'Health, Fitness & Dieting', 'Biography', 
     'Science Fiction & Fantasy', 'Mystery, Thriller & Suspense', 'Romance', 
@@ -138,6 +143,7 @@ const App: React.FC = () => {
     setIsLoading(true);
     setGeneratedBook(null);
     setCoverImage(null);
+    setPublishingDetails(null);
     setError(null);
     setSuggestedTitles([]);
 
@@ -226,6 +232,37 @@ const App: React.FC = () => {
       setIsCoverLoading(false);
     }
   }, [generatedBook, subtitle, category, customCategory, genre, wordCount, tone, targetAudience, language]);
+  
+  const handleGeneratePublishingDetails = useCallback(async () => {
+    if (!generatedBook) return;
+    setIsGeneratingDetails(true);
+    setError(null);
+    setCopied(null);
+
+    const finalCategory = category === 'Other' ? customCategory : category;
+    const generationConfig: GenerationConfig = {
+        title: generatedBook.title,
+        subtitle, 
+        authorName: generatedBook.authorName,
+        category: finalCategory, 
+        genre, 
+        wordCount, 
+        tone, 
+        targetAudience, 
+        language
+    };
+
+    try {
+        const details = await generatePublishingDetails(generationConfig, generatedBook.synopsis);
+        setPublishingDetails(details);
+    } catch (e) {
+        const err = e as Error;
+        setError(`Failed to generate publishing details: ${err.message}`);
+    } finally {
+        setIsGeneratingDetails(false);
+    }
+}, [generatedBook, subtitle, category, customCategory, genre, wordCount, tone, targetAudience, language]);
+
 
   const handleDownloadCover = () => {
     if (!coverImage || !generatedBook) return;
@@ -236,6 +273,29 @@ const App: React.FC = () => {
     a.click();
     document.body.removeChild(a);
   };
+  
+  const handleCopy = (text: string, type: 'description' | 'keywords') => {
+    navigator.clipboard.writeText(text).then(() => {
+        setCopied(type);
+        setTimeout(() => setCopied(null), 2000);
+    });
+  };
+
+  const CopyButton: React.FC<{ text: string, type: 'description' | 'keywords' }> = ({ text, type }) => (
+    <button
+        onClick={() => handleCopy(text, type)}
+        className="absolute top-2 right-2 p-1.5 bg-gray-100 rounded-md text-gray-600 hover:bg-gray-200 hover:text-gray-800 transition"
+        aria-label="Copy to clipboard"
+    >
+        {copied === type ? (
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-green-600">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+            </svg>
+        ) : (
+            <Icon type="copy" className="w-4 h-4" />
+        )}
+    </button>
+);
 
   return (
     <div className="min-h-screen bg-background font-sans">
@@ -437,6 +497,60 @@ const App: React.FC = () => {
                      </div>
                   </div>
                 </div>
+              </div>
+              <div className="mt-8 pt-6 border-t border-gray-200">
+                  <h4 className="text-lg font-semibold mb-4 text-center">{t('publishingDetails')}</h4>
+                  
+                  {!publishingDetails && !isGeneratingDetails && (
+                      <div className="text-center">
+                          <p className="text-text-secondary mb-4 max-w-md mx-auto">{t('publishingDetailsPrompt')}</p>
+                          <button 
+                              onClick={handleGeneratePublishingDetails} 
+                              className="inline-flex items-center justify-center gap-2 bg-secondary text-primary font-bold py-2 px-5 rounded-md hover:bg-secondary-hover transition-colors duration-300 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                          >
+                              <Icon type="sparkles" className="w-5 h-5"/>
+                              <span>{t('generateDescriptionKeywords')}</span>
+                          </button>
+                      </div>
+                  )}
+
+                  {isGeneratingDetails && (
+                      <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-center gap-4">
+                          <Icon type="spinner" className="w-6 h-6 text-primary"/>
+                          <p className="font-semibold text-primary">{t('generatingDetails')}</p>
+                      </div>
+                  )}
+
+                  {publishingDetails && (
+                      <div className="space-y-6">
+                          <div>
+                              <label className="block text-sm font-medium text-text-secondary mb-1">{t('bookDescription')}</label>
+                              <div className="relative">
+                                  <textarea 
+                                      readOnly 
+                                      value={publishingDetails.description} 
+                                      className="w-full p-3 h-40 border border-gray-300 rounded-md bg-gray-50 text-sm resize-none"
+                                  />
+                                  <CopyButton text={publishingDetails.description} type='description' />
+                              </div>
+                          </div>
+                          <div>
+                              <label className="block text-sm font-medium text-text-secondary mb-1">{t('keywords')}</label>
+                              <div className="relative p-3 border border-gray-300 rounded-md bg-gray-50">
+                                  <div className="flex flex-wrap gap-2">
+                                      {publishingDetails.keywords.map((keyword, index) => (
+                                          <span key={index} className="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">{keyword}</span>
+                                      ))}
+                                  </div>
+                                  <CopyButton text={publishingDetails.keywords.join(', ')} type='keywords' />
+                              </div>
+                          </div>
+                          <div>
+                              <label className="block text-sm font-medium text-text-secondary mb-1">{t('suggestedCategory')}</label>
+                              <p className="p-3 border border-gray-300 rounded-md bg-gray-50 font-semibold text-text-primary">{publishingDetails.category}</p>
+                          </div>
+                      </div>
+                  )}
               </div>
             </div>
           </div>

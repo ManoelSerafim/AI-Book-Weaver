@@ -36,3 +36,9 @@ export interface GenerationConfig {
     targetAudience: string;
     language: string;
 }
+
+export interface PublishingDetails {
+  description: string;
+  keywords: string[];
+  category: string;
+}

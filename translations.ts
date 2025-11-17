@@ -1,3 +1,4 @@
+
 export const translations = {
   en: {
     headerTitle: 'AI Book Weaver',
@@ -60,6 +61,13 @@ export const translations = {
     bookPreview: 'Book Preview',
     synopsis: 'Synopsis',
     formError: 'Please enter at least a Book Title and Author Name.',
+    publishingDetails: 'Publishing & Marketing',
+    publishingDetailsPrompt: 'Generate an AI-powered book description and keywords to help your masterpiece get discovered.',
+    generateDescriptionKeywords: 'Generate Description & Keywords',
+    generatingDetails: 'Generating...',
+    bookDescription: 'Book Description (for KDP)',
+    keywords: '7 KDP Keywords',
+    suggestedCategory: 'Suggested KDP Category',
   },
   pt: {
     headerTitle: 'AI Tecelão de Livros',
@@ -122,6 +130,13 @@ export const translations = {
     bookPreview: 'Pré-visualização do Livro',
     synopsis: 'Sinopse',
     formError: 'Por favor, insira pelo menos um Título do Livro e Nome do Autor.',
+    publishingDetails: 'Publicação e Marketing',
+    publishingDetailsPrompt: 'Gere uma descrição e palavras-chave com IA para ajudar sua obra-prima a ser descoberta.',
+    generateDescriptionKeywords: 'Gerar Descrição e Palavras-chave',
+    generatingDetails: 'Gerando...',
+    bookDescription: 'Descrição do Livro (para KDP)',
+    keywords: '7 Palavras-chave KDP',
+    suggestedCategory: 'Categoria KDP Sugerida',
   },
   es: {
     headerTitle: 'Tejedor de Libros IA',
@@ -184,6 +199,13 @@ export const translations = {
     bookPreview: 'Vista Previa del Libro',
     synopsis: 'Sinopsis',
     formError: 'Por favor, introduce al menos un Título del Libro y un Nombre del Autor.',
+    publishingDetails: 'Publicación y Marketing',
+    publishingDetailsPrompt: 'Genera una descripción y palabras clave con IA para ayudar a que tu obra maestra sea descubierta.',
+    generateDescriptionKeywords: 'Generar Descripción y Palabras Clave',
+    generatingDetails: 'Generando...',
+    bookDescription: 'Descripción del Libro (para KDP)',
+    keywords: '7 Palabras Clave de KDP',
+    suggestedCategory: 'Categoría de KDP Sugerida',
   },
 };
 

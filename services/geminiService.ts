@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import type { BookOutline, GenerationConfig } from '../types';
+import type { BookOutline, GenerationConfig, PublishingDetails } from '../types';
 
 if (!process.env.API_KEY) {
   throw new Error("API_KEY environment variable is not set");
@@ -42,6 +42,26 @@ const alternativeTitlesSchema = {
     },
   },
   required: ["titles"],
+};
+
+const publishingDetailsSchema = {
+  type: Type.OBJECT,
+  properties: {
+    description: {
+      type: Type.STRING,
+      description: "A compelling book description, optimized for online stores like Amazon KDP, around 150-200 words.",
+    },
+    keywords: {
+      type: Type.ARRAY,
+      description: "An array of exactly 7 relevant keywords for search discoverability on KDP.",
+      items: { type: Type.STRING },
+    },
+    category: {
+      type: Type.STRING,
+      description: "The most specific and appropriate Amazon KDP category path for the book (e.g., 'Books > Science Fiction & Fantasy > Fantasy > Epic').",
+    },
+  },
+  required: ["description", "keywords", "category"],
 };
 
 
@@ -205,5 +225,47 @@ export const generateCoverImage = async (config: GenerationConfig, synopsis: str
   } catch (error) {
     console.error("Error generating cover image:", error);
     throw new Error("Failed to generate cover image.");
+  }
+};
+
+export const generatePublishingDetails = async (
+  config: GenerationConfig,
+  synopsis: string,
+): Promise<PublishingDetails> => {
+  const prompt = `
+    You are an expert in book marketing for Amazon KDP.
+    Based on the following book details, generate the necessary metadata for publishing.
+    - Title: "${config.title}"
+    - Synopsis: "${synopsis}"
+    - Genre: ${config.genre}
+    - Category: ${config.category}
+    - Target Audience: ${config.targetAudience}
+    
+    Your task is to create:
+    1. A compelling book description (150-200 words) that hooks the reader.
+    2. Exactly 7 specific keywords that potential readers would use to find this book.
+    3. The most fitting and specific KDP category path.
+
+    IMPORTANT: Generate all content in ${config.language}.
+    Return a valid JSON object matching the provided schema.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: publishingDetailsSchema,
+      },
+    });
+
+    const jsonText = response.text.trim();
+    const cleanedJson = jsonText.replace(/^```json\n?/, "").replace(/\n?```$/, "");
+    return JSON.parse(cleanedJson) as PublishingDetails;
+
+  } catch (error) {
+    console.error("Error generating publishing details:", error);
+    throw new Error("Failed to generate publishing details.");
   }
 };
